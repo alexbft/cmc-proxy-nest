@@ -1,25 +1,18 @@
-import { Controller, Get, HttpException, HttpStatus, Request, UseGuards } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
-import { QueryService } from './query.service';
+import { Controller, Get, HttpException, HttpStatus, Query, UseGuards } from '@nestjs/common';
+import { QuotesResponse } from '../data/QuotesResponse';
 import { ClientKeyGuard } from '../guard/client_key.guard';
+import { QueryService } from './query.service';
 
-@Controller('query')
+@Controller()
 @UseGuards(ClientKeyGuard)
 export class QueryController {
   constructor(private readonly queryService: QueryService) { }
 
-  @Get()
-  async getQuery(@Request() req: ExpressRequest): Promise<object> {
-    const url = new URL(req.url, 'https://example.com');
-    const apiMethod = url.searchParams.get('method');
-    if (apiMethod == null) {
-      throw new HttpException('API method not specified', HttpStatus.BAD_REQUEST);
+  @Get('quotes')
+  async getQuotes(@Query('symbol') symbols: string): Promise<QuotesResponse> {
+    if (symbols == null || symbols === '') {
+      throw new HttpException('No symbols specified', HttpStatus.BAD_REQUEST);
     }
-    url.searchParams.delete('method');
-    const cmcResponse = await this.queryService.sendCmcQuery(apiMethod, url.searchParams.toString());
-    return {
-      statusCode: HttpStatus.OK,
-      response: cmcResponse,
-    };
+    return this.queryService.getQuotes(symbols.split(','));
   }
 }

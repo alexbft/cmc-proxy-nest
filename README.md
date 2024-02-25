@@ -14,6 +14,8 @@ Edit `src/env/.default.env` file. See the template in `src/env/.default.env.temp
 
 To generate client keys, use `npm keygen` or anything you like.
 
+To use HTTPS, create a `cert` directory in the project root, and place `key.pem` and `cert.pem` files there.
+
 ## Running the app
 
 ```bash
@@ -27,7 +29,7 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-When the service in running, sending a `GET` request in form of `/query?method=<API method>&<rest of arguments>` will proxy the request to CMC.
+When the service in running, sending a `GET` request in form of `/quotes?symbol=<comma-separated list>` will return the quotes data from CMC.
 
 ## Test
 

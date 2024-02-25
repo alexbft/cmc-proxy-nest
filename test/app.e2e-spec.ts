@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { QuotesResponse } from 'src/src/data/QuotesResponse';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -20,40 +21,47 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('returns correct data when querying BTC', async () => {
+  it('returns correct data when querying BTC and ETH', async () => {
     expect(app.get(ConfigService).get('allowed-client-keys')).toBe(clientKey);
     const urlSearchParams = new URLSearchParams();
-    urlSearchParams.set('method', 'v1/cryptocurrency/quotes/latest');
-    urlSearchParams.set('symbol', 'BTC');
-    urlSearchParams.set('convert', 'USD');
+    urlSearchParams.set('symbol', 'BTC,ETH');
     const response = await request(app.getHttpServer())
-      .get(`/query?${urlSearchParams}`)
+      .get(`/quotes?${urlSearchParams}`)
       .set('X-CLIENT-KEY', clientKey)
       .expect(200)
       .expect('Content-Type', /json/);
-    expect(response.body).toMatchObject({
+    const expectedResponse: QuotesResponse = {
       statusCode: 200,
-      response: {
-        status: { error_code: 0 },
-        data: { "BTC": {} }
-      },
-    });
+      data: {
+        quotes: expect.arrayContaining([
+          expect.objectContaining({
+            status: 'ok',
+            ticker: 'BTC',
+          }),
+          expect.objectContaining({
+            status: 'ok',
+            ticker: 'ETH',
+          }),
+        ])
+      }
+    }
+    expect(response.body).toMatchObject(expectedResponse);
   });
 
-  it('returns 400 if no method specified', async () => {
+  it('returns 400 if no symbols specified', async () => {
     await request(app.getHttpServer())
-      .get(`/query`)
+      .get(`/quotes`)
       .set('X-CLIENT-KEY', clientKey)
       .expect(400)
       .expect({
         "statusCode": 400,
-        "message": 'API method not specified'
+        "message": 'No symbols specified'
       });
   });
 
   it('returns 403 if no client key', async () => {
     await request(app.getHttpServer())
-      .get(`/query`)
+      .get(`/quotes`)
       .expect(403)
       .expect({
         "statusCode": 403,
@@ -63,7 +71,7 @@ describe('AppController (e2e)', () => {
 
   it('returns 403 if wrong client key', async () => {
     await request(app.getHttpServer())
-      .get(`/query`)
+      .get(`/quotes`)
       .set('X-CLIENT-KEY', 'invalid-key')
       .expect(403)
       .expect({
